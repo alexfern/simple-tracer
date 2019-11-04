@@ -74,12 +74,9 @@ public:
 		const Renderer& renderer = this->renderer;
 		auto sampler = [width, height, &camToWorld, &f, &renderer](int x, int y) {
 			Poi2f ndc{ (float)(x + randomD()) / width, (float)(y + randomD()) / height };
-			if (91 == x && y == 20)
-				std::cout << "h";
 			Ray r = camToWorld(f.generateRay(ndc));
 			Vec3f c = renderer.color(r);
 			return c;
-			
 		};
 
 		std::future<Vec3f>* samples = new std::future<Vec3f>[numSamples]();
@@ -96,7 +93,7 @@ public:
 					cAvg += sampler(x, y);//samples[i].get();
 				}
 				cAvg /= (float)numSamples;
-				cAvg = { std::min(cAvg.x, 1.0f), std::min(cAvg.y, 1.0f), std::min(cAvg.z, 1.0f) };
+				cAvg = { sqrt(std::min(cAvg.x, 1.0f)), sqrt(std::min(cAvg.y, 1.0f)), sqrt(std::min(cAvg.z, 1.0f)) };
 
 				img(x, y) = Vec3<uint8_t>(cAvg * 255);
 			}

@@ -39,30 +39,34 @@ struct Material {
 		light(light)
 	{}
 
-	Ray getScatteredRay(const Intersection& insect, float& weight) const {
+	Ray getScatteredRay(const Intersection& insect, float* weight = nullptr) const {
 		Poi3f p = insect.p;
 		Norm3f n = insect.n;
 		Vec3f s = normalize(insect.dpdu);
+
+		if (s == Vec3f{ 0, 0, 0 }) { //dpdu might be zero (say for example at pole of sphere)
+			s = normalize(insect.dpdv); //so use dvdu instead for tangentness
+		}
+
 		Vec3f t = normalize(cross(s, n));
 		Mat33f m{	
 			s.x, s.y, s.z,
 			t.x, t.y, t.z,
 			n.x, n.y, n.z
 		};
+
 		float a = randomF();
 		float b = randomF();
 		float x = cos(2 * PI * b) * sqrt(1 - a * a);
 		float y = sin(2 * PI * b) * sqrt(1 - a * a);
 		float z = a;
-		//weight = 1 / (2 * PI);
-		weight = UniformHemispherePdf();
-		return Ray{ p, Vec3f(n) + randomInUnitSphere() };
-		return Ray{ p, m * UniformSampleHemisphere({a, b}) };
+
+		if (weight != nullptr) {
+			*weight = 1 / (2 * PI);
+		}
 		return Ray{ p, m * Vec3f{x, y, z} };
 	}
-
-	
-
+		
 	~Material() {};
 
 };

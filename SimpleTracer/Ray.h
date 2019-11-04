@@ -12,7 +12,7 @@ struct Ray {
 		org(org),
 		dir(dir),
 		tMax(BIG_ASS_NUMBER),
-		tMin(std::numeric_limits<float>::epsilon() * 100)
+		tMin(0)//std::numeric_limits<float>::epsilon())
 	{}
 
 	mutable float tMin;

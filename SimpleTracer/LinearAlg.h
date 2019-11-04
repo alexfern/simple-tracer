@@ -439,7 +439,7 @@ struct Vector : public VectorData<Size, Type> {
 	friend std::ostream& operator<<(std::ostream& lhs, const Vector<Size, Type>& rhs) {
 		if (Size == 0) {
 			lhs << "[]";
-			return rhs;
+			return lhs;
 		}
 		lhs << "[" << rhs.data[0];
 		for (size_t i = 1; i < Size; i++)
@@ -613,7 +613,7 @@ struct Point : public PointData<Size, Type> {
 	friend std::ostream& operator<<(std::ostream& lhs, const Point<Size, Type>& rhs) {
 		if (Size == 0) {
 			lhs << "[]";
-			return rhs;
+			return lhs;
 		}
 		lhs << "[" << rhs.data[0];
 		for (size_t i = 1; i < Size; i++)
@@ -808,7 +808,7 @@ struct Normal : public NormalData<Size, Type> {
 	friend std::ostream& operator<<(std::ostream& lhs, const Normal<Size, Type>& rhs) {
 		if (Size == 0) {
 			lhs << "[]";
-			return rhs;
+			return lhs;
 		}
 		lhs << "[" << rhs.data[0];
 		for (size_t i = 1; i < Size; i++)
@@ -857,12 +857,12 @@ inline Type cofactor(const Matrix<Size, Size, Type>& mat, size_t row, size_t col
 	Matrix<Size - 1, Size - 1, Type> subMat = Matrix<Size - 1, Size - 1, Type>();
 	for (size_t i = 0; i < Size - 1; i++) {
 		for (size_t j = 0; j < Size - 1; j++) {
-			size_t r = i < row ? i : j + 1;
+			size_t r = i < row ? i : i + 1;
 			size_t c = j < column ? j : j + 1;
 			subMat[i][j] = mat[r][c];
 		}
 	}
-	size_t sign = (row % 2 ? 1 : -1) * (column % 2 ? 1 : -1);
+	int sign = (row % 2 ? 1 : -1) * (column % 2 ? 1 : -1);
 	return sign * det(subMat);
 }
 
@@ -906,7 +906,9 @@ inline Matrix<Size, Size, Type> inv(const Matrix<Size, Size, Type>& mat) {
 template<size_t Size, typename Type, typename... Args, typename E = typename std::enable_if<Size - 2 == sizeof...(Args)>::type>
 inline Vector<Size, Type> cross(Vector<Size, Type> vec, Args... args) {
 	Matrix<Size, Size, Type> mat = Matrix<Size, Size, Type>();
-	populateCrossMat(mat, 0, vec, args...);
+	for (int i = 0; i < Size; i++)
+		mat.data2d[0][i] = 1;
+	populateCrossMat(mat, 1, vec, args...);
 	Vector<Size, Type> result = Vector<Size, Type>();
 	for (size_t i = 0; i < Size; ++i)
 		result.data[i] = cofactor(mat, 0, i);

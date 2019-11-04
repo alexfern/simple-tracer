@@ -15,82 +15,49 @@ public:
 		radius(radius)
 	{}
 
-	bool intersect(const Ray& r, Intersection* insect = nullptr) const {
-		Vec3f oc = r.org - center;
-		float a = dot(r.dir, r.dir);
-		float b = dot(oc, r.dir);
+	bool intersect(const Ray& ray, Intersection* insect = nullptr) const {
+		Vec3f oc = ray.org - center;
+		float a = dot(ray.dir, ray.dir);
+		float b = dot(oc, ray.dir);
 		float c = dot(oc, oc) - radius * radius;
 		float discriminant = b * b - a * c;
-		if (discriminant > 0) {
-			float t = (-b - sqrt(discriminant)) / a;
-			if (r.tMax < r.BIG_ASS_NUMBER / 2 && !(t > r.tMin) && !(t < -r.tMin) ) {
-				std::cout << "t:" << t << " tmax:" << r.tMax << "\n";
-			}
-			if (t < r.tMax && t > r.tMin) {
-				Poi3f p = (insect->p = r(t)); //Intersection point is t dist along ray
-				Vec3f delta = p - center; //To account for sphere not being centered at origin
-				insect->n = Norm3f{ normalize(delta) }; //Direction from center to point is normal direction			
-				float theta = acos(delta.z / radius); //Theta in range [-PI/2, PI/2]
-				float phi = (PI / 2) - atan(delta.x / delta.y); //Phi in range [0, PI]
-				if (delta.y < 0) //Extends range to [0, 2PI] by checking if sin(real phi) is negitive
-					phi += PI;
-				float u = phi / (2 * PI);
-				float v = theta / PI;
-				insect->uv = { u, v };
-				insect->dpdu = { delta.y, delta.x, 0 };
-				insect->dpdv = { delta.z * cos(phi), delta.z * sin(phi), -radius * cos(theta) };
-				r.tMax = t;
-				return true;
-			}
-			t = (-b + sqrt(discriminant)) / a;
-			if (t < r.tMax && t > r.tMin) {
-				
-				Poi3f p = (insect->p = r(t)); //Intersection point is t dist along ray
-				Vec3f delta = p - center; //To account for sphere not being centered at origin
-				insect->n = Norm3f{ normalize(delta) }; //Direction from center to point is normal direction			
-				float theta = acos(delta.z / radius); //Theta in range [-PI/2, PI/2]
-				float phi = (PI / 2) - atan(delta.x / delta.y); //Phi in range [0, PI]
-				if (delta.y < 0) //Extends range to [0, 2PI] by checking if sin(real phi) is negitive
-					phi += PI;
-				float u = phi / (2 * PI);
-				float v = theta / PI;
-				insect->uv = { u, v };
-				insect->dpdu = { delta.y, delta.x, 0 };
-				insect->dpdv = { delta.z * cos(phi), delta.z * sin(phi), -radius * cos(theta) };
-				r.tMax = t;
-				return true;
-			}
+		if (discriminant < 0)
+			return false; //No intersects
+
+		float t = (-b - sqrt(discriminant)) / a; //First try - part of +- in quadratic equation: its the closer part
+		if (t >= ray.tMax || t <= ray.tMin) {
+			t = (-b + sqrt(discriminant)) / a; //Might be inside the circle or something weird, try other root
+			if (t >= ray.tMax || t <= ray.tMin)
+				return false; //Solutions aren't in valid range
 		}
-		return false;
-		/*Vec3f oc = r.org - center;
-		float a = dot(r.dir, r.dir);
-		float b = 2.0f * dot(oc, r.dir);
-		float c = dot(oc, oc) - radius * radius;
-		float discriminant = b * b - 4 * a * c;*/
-		if (discriminant < 0) //No intersections
-			return false;
 
-		float t = (-b - sqrt(discriminant)) / (2.0f * a); //Uses the - in +-, because it should be closer (unless we are in front of/inside object)
-		if (t > r.tMax || t < r.tMin) //Intesection either to close or to far
-			return false;
-		r.tMax = t;
-
-		if (insect != nullptr) {
-			
-			Poi3f p = (insect->p = r(t)); //Intersection point is t dist along ray
+		if (insect != nullptr) { //Populate intersection data if possible
+			insect->wo = -ray.dir; //Wo is back towards incoming direction
+			Poi3f p = (insect->p = ray(t)); //Intersection point is t dist along ray
 			Vec3f delta = p - center; //To account for sphere not being centered at origin
 			insect->n = Norm3f{ normalize(delta) }; //Direction from center to point is normal direction			
-			float theta = acos(delta.z / radius); //Theta in range [-PI/2, PI/2]
+			float theta = acos(delta.z / radius); //Theta in range [0, PI]
+			float v = theta / PI;
+
 			float phi = (PI / 2) - atan(delta.x / delta.y); //Phi in range [0, PI]
 			if (delta.y < 0) //Extends range to [0, 2PI] by checking if sin(real phi) is negitive
 				phi += PI;
+
+			//cot^-1(x/y) might be undefined if 
+			if (v == 0 || v == 1) { //at poles of sphere
+				phi = 0;
+			}
+			else if (delta.y == 0) { // or y is otherwise zero
+				phi = delta.x > 0 ? 0 : PI;
+			}
+
 			float u = phi / (2 * PI);
-			float v = theta / PI;
+
 			insect->uv = { u, v };
-			insect->dpdu = { delta.y, delta.x, 0 };
-			insect->dpdv = { delta.z * cos(phi), delta.z * sin(phi), -radius * cos(theta) };
+			insect->dpdu = { delta.y * 2 * PI, delta.x * 2 * PI, 0 };
+			insect->dpdv = { delta.z * cos(phi) * PI, delta.z * sin(phi) * PI, -radius * sin(theta) * PI };
 		}
-		
+		ray.tMax = t;
 		return true;
 	}
 };

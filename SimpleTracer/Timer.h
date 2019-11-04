@@ -7,7 +7,9 @@ struct Timer {
 private:
 	std::chrono::time_point<Clock> last;
 public:
-	Timer();
+	Timer() :
+		last(Clock::now())
+	{}
 
 	std::chrono::duration<double> mark();
 };

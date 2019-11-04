@@ -12,7 +12,7 @@ static constexpr int MAX_DEPTH = 10;
 struct Renderer {
 private:
 	std::shared_ptr<Scene> scene;
-	Vec3f ambient =  { .1f, .1f, .1f };
+	Vec3f ambient = { 0.0f, 0.0f, 0.0f };// { .1f, .1f, .1f };
 public:
 	Renderer(std::shared_ptr<Scene> scene) :
 		scene(scene)
@@ -31,7 +31,7 @@ public:
 			const Material& mat = *(insect.m);
 			c += mat.light;
 			float weight = 0;
-			Ray scattered{ mat.getScatteredRay(insect, weight) };
+			Ray scattered{ mat.getScatteredRay(insect, &weight) };
 			Vec3f incoming = color(scattered, depth + 1);
 			{
 				float r = mat.color.x * incoming.x;
@@ -40,13 +40,13 @@ public:
 				float cost = dot(scattered.dir, insect.n);
 				if (cost < 0)
 					cost = 0;
-				c += (Vec3f{ r, g, b } * cost / weight);
+				c += (Vec3f{ r, g, b } * cost);
 			}
 			float x = r.tMax;
 			//if (x == 0)
 				//std::cout << "NANI?";
 			float y = x / (1 + x);
-			c = { y, y, y };
+			//c = { y, y, y };
 		} else { //Some ambient lighting from background
 			c += ambient;
 		}
